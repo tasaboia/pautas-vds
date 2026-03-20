@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ItemStatus {
+  RECEBIDO
+  EM_REVISAO
+  APROVADO
+  ARQUIVADO
+}
+
+enum DiaStatus {
+  RASCUNHO
+  EM_MONTAGEM
+  CONCLUIDO
+}
+
+model Locality {
+  id           Int         @id @default(autoincrement())
+  code         String      @unique
+  name         String
+  criadoEm     DateTime    @default(now())
+  atualizadoEm DateTime    @updatedAt
+  items        PrayerItem[]
+  days         PrayerDay[]
+}
+
+model PrayerItem {
+  id                Int         @id @default(autoincrement())
+  localityId        Int
+  textoOriginal     String
+  textoRevisado     String?
+  referenciaBiblica String
+  categoria         String?
+  tipoOracao        String
+  idioma            String
+  observacaoPublica String?
+  observacaoInterna String?
+  status            ItemStatus  @default(RECEBIDO)
+  criadoEm          DateTime    @default(now())
+  atualizadoEm      DateTime    @updatedAt
+  locality          Locality    @relation(fields: [localityId], references: [id], onDelete: Cascade)
+  composicoes       DayItem[]
+
+  @@index([localityId])
+}
+
+model PrayerDay {
+  id           Int         @id @default(autoincrement())
+  localityId   Int
+  numero       Int
+  titulo       String?
+  descricao    String?
+  status       DiaStatus   @default(RASCUNHO)
+  concluidoEm  DateTime?
+  criadoEm     DateTime    @default(now())
+  atualizadoEm DateTime    @updatedAt
+  locality     Locality    @relation(fields: [localityId], references: [id], onDelete: Cascade)
+  itens        DayItem[]
+
+  @@unique([localityId, numero])
+  @@index([localityId])
+}
+
+model DayItem {
+  id           Int        @id @default(autoincrement())
+  dayId        Int
+  itemId       Int
+  ordem        Int
+  criadoEm     DateTime   @default(now())
+  day          PrayerDay  @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  item         PrayerItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([dayId, itemId])
+  @@unique([dayId, ordem])
+}
