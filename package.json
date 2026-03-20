@@ -1,16 +1,28 @@
 {
+<<<<<<< HEAD
   "name": "central-pautas-oracao",
   "version": "0.2.0",
+=======
+  "name": "sistema-pautas-oracao",
+  "version": "0.1.0",
+>>>>>>> 2ea456331d0280f0f4436421684651d159c2ff2a
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+<<<<<<< HEAD
+=======
+    "lint": "next lint",
+>>>>>>> 2ea456331d0280f0f4436421684651d159c2ff2a
     "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.6.0",
+<<<<<<< HEAD
     "docx": "^9.5.1",
+=======
+>>>>>>> 2ea456331d0280f0f4436421684651d159c2ff2a
     "next": "16.2.0",
     "next-auth": "5.0.0-beta.30",
     "react": "19.2.4",

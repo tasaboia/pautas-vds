@@ -7,6 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+<<<<<<< HEAD
 enum ItemStatus {
   RECEBIDO
   EM_REVISAO
@@ -78,4 +79,32 @@ model DayItem {
 
   @@unique([dayId, itemId])
   @@unique([dayId, ordem])
+=======
+enum StatusPauta {
+  RECEBIDA
+  EM_TRIAGEM
+  AJUSTAR
+  REVISADA
+  SELECIONADA
+  ENVIADA_TAMI
+}
+
+model Pauta {
+  id                  Int         @id @default(autoincrement())
+  tipoOracao          String
+  pauta               String
+  referencia          String
+  idioma              String
+  categoria           String?
+  observacaoPublica   String?
+  textoFinal          String?
+  status              StatusPauta @default(RECEBIDA)
+  revisada            Boolean     @default(false)
+  enviadaParaTami     Boolean     @default(false)
+  dia                 Int?
+  ordemNoDia          Int?
+  observacoesInternas String?
+  criadoEm            DateTime    @default(now())
+  atualizadoEm        DateTime    @updatedAt
+>>>>>>> 2ea456331d0280f0f4436421684651d159c2ff2a
 }
