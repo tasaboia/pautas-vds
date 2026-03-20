@@ -48,6 +48,10 @@ type Day = {
 type DashboardData = {
   items: Item[];
   days: Day[];
+  locality?: {
+    code: LocalityCode;
+    name: string;
+  };
 };
 
 export function OrganizerDashboard({
@@ -157,14 +161,22 @@ export function OrganizerDashboard({
   const stats = useMemo(
     () => ({
       totalItens: data.items.length,
-      emRevisao: data.items.filter((item) => item.status === "EM_REVISAO").length,
+      emRevisao: data.items.filter((item) => item.status === "EM_REVISAO")
+        .length,
       aprovados: data.items.filter((item) => item.status === "APROVADO").length,
-      diasMontagem: data.days.filter((day) => day.status === "EM_MONTAGEM").length,
-      diasConcluidos: data.days.filter((day) => day.status === "CONCLUIDO").length,
+      diasMontagem: data.days.filter((day) => day.status === "EM_MONTAGEM")
+        .length,
+      diasConcluidos: data.days.filter((day) => day.status === "CONCLUIDO")
+        .length,
       semDia: data.items.filter((item) => item.composicoes.length === 0).length,
     }),
     [data],
   );
+
+  const activeLocalityName =
+    data.locality?.name ||
+    LOCALITIES.find((locality) => locality.code === selectedLocality)?.name ||
+    selectedLocality;
 
   const availableDayNumbers = useMemo(
     () => data.days.map((day) => day.numero).sort((a, b) => a - b),
@@ -199,12 +211,15 @@ export function OrganizerDashboard({
     : `/api/export/days?start=${normalizedExportStart}&end=${normalizedExportEnd}&locality=${selectedLocality}`;
 
   async function patchItem(id: number, patch: Record<string, unknown>) {
-    const response = await fetch(`/api/items/${id}?locality=${selectedLocality}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-      cache: "no-store",
-    });
+    const response = await fetch(
+      `/api/items/${id}?locality=${selectedLocality}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+        cache: "no-store",
+      },
+    );
     const json = await response.json();
     if (!response.ok) {
       setFeedback(json.error || "Não foi possível salvar o item.");
@@ -216,11 +231,14 @@ export function OrganizerDashboard({
   }
 
   async function saveDay(patch: Record<string, unknown>) {
-    const response = await fetch(`/api/days/${selectedDay}?locality=${selectedLocality}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-    });
+    const response = await fetch(
+      `/api/days/${selectedDay}?locality=${selectedLocality}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      },
+    );
     const json = await response.json();
     if (!response.ok) {
       setFeedback(json.error || "Não foi possível salvar o dia.");
@@ -257,11 +275,14 @@ export function OrganizerDashboard({
   const canConcludeDay = (currentDay?.itens.length || 0) > 0;
 
   async function addToDay(itemId: number) {
-    const response = await fetch(`/api/day-items?locality=${selectedLocality}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dayNumber: selectedDay, itemId }),
-    });
+    const response = await fetch(
+      `/api/day-items?locality=${selectedLocality}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dayNumber: selectedDay, itemId }),
+      },
+    );
     const json = await response.json();
     if (!response.ok) {
       setFeedback(json.error || "Não foi possível adicionar ao dia.");
@@ -272,14 +293,19 @@ export function OrganizerDashboard({
   }
 
   async function updateDayItem(id: number, action: "UP" | "DOWN" | "REMOVE") {
-    const response = await fetch(`/api/day-items/${id}?locality=${selectedLocality}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action }),
-    });
+    const response = await fetch(
+      `/api/day-items/${id}?locality=${selectedLocality}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      },
+    );
     const json = await response.json();
     if (!response.ok) {
-      setFeedback(json.error || "Não foi possível atualizar a composição do dia.");
+      setFeedback(
+        json.error || "Não foi possível atualizar a composição do dia.",
+      );
       return;
     }
     await load();
@@ -302,20 +328,62 @@ export function OrganizerDashboard({
         <aside className="side-card compact-side">
           <h3>Regras do fluxo</h3>
           <div className="flow">
-            <div className="flow-item"><div className="flow-step">1</div><div><strong>Item individual</strong><span>O público envia um item, não o dia completo.</span></div></div>
-            <div className="flow-item"><div className="flow-step">2</div><div><strong>5 itens por dia</strong><span>O sistema ajuda a compor a pauta do dia com até 5 como média.</span></div></div>
-            <div className="flow-item"><div className="flow-step">3</div><div><strong>Exportação final</strong><span>Somente dias concluídos seguem para exportação.</span></div></div>
+            <div className="flow-item">
+              <div className="flow-step">1</div>
+              <div>
+                <strong>Item individual</strong>
+                <span>O público envia um item, não o dia completo.</span>
+              </div>
+            </div>
+            <div className="flow-item">
+              <div className="flow-step">2</div>
+              <div>
+                <strong>5 itens por dia</strong>
+                <span>
+                  O sistema ajuda a compor a pauta do dia com até 5 como média.
+                </span>
+              </div>
+            </div>
+            <div className="flow-item">
+              <div className="flow-step">3</div>
+              <div>
+                <strong>Exportação final</strong>
+                <span>Somente dias concluídos seguem para exportação.</span>
+              </div>
+            </div>
           </div>
         </aside>
       </section>
 
       <section className="stats">
-        <div className="stat"><span>Itens recebidos</span><strong>{stats.totalItens}</strong></div>
-        <div className="stat"><span>Em revisão</span><strong>{stats.emRevisao}</strong></div>
-        <div className="stat"><span>Aprovados</span><strong>{stats.aprovados}</strong></div>
-        <div className="stat"><span>Dias em montagem</span><strong>{stats.diasMontagem}</strong></div>
-        <div className="stat"><span>Dias concluídos</span><strong>{stats.diasConcluidos}</strong></div>
-        <div className="stat"><span>Sem dia</span><strong>{stats.semDia}</strong></div>
+        <div className="stat" style={{ gridColumn: "1 / -1" }}>
+          <span>Localidade ativa nos indicadores</span>
+          <strong>{activeLocalityName}</strong>
+        </div>
+        <div className="stat">
+          <span>Itens recebidos</span>
+          <strong>{stats.totalItens}</strong>
+        </div>
+        <div className="stat">
+          <span>Em revisão</span>
+          <strong>{stats.emRevisao}</strong>
+        </div>
+        <div className="stat">
+          <span>Aprovados</span>
+          <strong>{stats.aprovados}</strong>
+        </div>
+        <div className="stat">
+          <span>Dias em montagem</span>
+          <strong>{stats.diasMontagem}</strong>
+        </div>
+        <div className="stat">
+          <span>Dias concluídos</span>
+          <strong>{stats.diasConcluidos}</strong>
+        </div>
+        <div className="stat">
+          <span>Sem dia</span>
+          <strong>{stats.semDia}</strong>
+        </div>
       </section>
 
       {feedback ? <div className="feedback success">{feedback}</div> : null}
@@ -324,30 +392,223 @@ export function OrganizerDashboard({
         <aside className="sidebar">
           <h3>Banco de itens</h3>
           <p>Filtre, revise e escolha quais itens entram no dia selecionado.</p>
-          <div className="field"><label>Localidade</label><select value={selectedLocality} disabled={Boolean(forcedLocality)} onChange={(e) => setSelectedLocality(e.target.value as LocalityCode)}>{LOCALITIES.map((locality) => (<option key={locality.code} value={locality.code}>{locality.name}</option>))}</select></div>
-          <div className="field"><label>Buscar</label><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Texto, referência, categoria..." /></div>
-          <div className="field"><label>Status</label><select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option value="TODOS">Todos</option>{itemStatusOptions.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}</select></div>
-          <div className="field"><label>Categoria</label><select value={categoriaFilter} onChange={(e) => setCategoriaFilter(e.target.value)}><option value="TODAS">Todas</option>{categorias.map((o) => (<option key={o}>{o}</option>))}</select></div>
-          <div className="field"><label>Tipo de oração</label><select value={tipoFilter} onChange={(e) => setTipoFilter(e.target.value)}><option value="TODOS">Todos</option>{tiposOracao.map((o) => (<option key={o}>{o}</option>))}</select></div>
-          <div className="field"><label>Idioma</label><select value={idiomaFilter} onChange={(e) => setIdiomaFilter(e.target.value)}><option value="TODOS">Todos</option>{idiomas.map((o) => (<option key={o}>{o}</option>))}</select></div>
-          <div className="field"><label>Dia selecionado</label><select value={selectedDay} onChange={(e) => setSelectedDay(Number(e.target.value))}>{Array.from({ length: 40 }, (_, index) => index + 1).map((day) => (<option key={day} value={day}>Dia {day}</option>))}</select></div>
+          <div className="field">
+            <label>Localidade</label>
+            <select
+              value={selectedLocality}
+              disabled={Boolean(forcedLocality)}
+              onChange={(e) =>
+                setSelectedLocality(e.target.value as LocalityCode)
+              }
+            >
+              {LOCALITIES.map((locality) => (
+                <option key={locality.code} value={locality.code}>
+                  {locality.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label>Buscar</label>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Texto, referência, categoria..."
+            />
+          </div>
+          <div className="field">
+            <label>Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="TODOS">Todos</option>
+              {itemStatusOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label>Categoria</label>
+            <select
+              value={categoriaFilter}
+              onChange={(e) => setCategoriaFilter(e.target.value)}
+            >
+              <option value="TODAS">Todas</option>
+              {categorias.map((o) => (
+                <option key={o}>{o}</option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label>Tipo de oração</label>
+            <select
+              value={tipoFilter}
+              onChange={(e) => setTipoFilter(e.target.value)}
+            >
+              <option value="TODOS">Todos</option>
+              {tiposOracao.map((o) => (
+                <option key={o}>{o}</option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label>Idioma</label>
+            <select
+              value={idiomaFilter}
+              onChange={(e) => setIdiomaFilter(e.target.value)}
+            >
+              <option value="TODOS">Todos</option>
+              {idiomas.map((o) => (
+                <option key={o}>{o}</option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label>Dia selecionado</label>
+            <select
+              value={selectedDay}
+              onChange={(e) => setSelectedDay(Number(e.target.value))}
+            >
+              {Array.from({ length: 40 }, (_, index) => index + 1).map(
+                (day) => (
+                  <option key={day} value={day}>
+                    Dia {day}
+                  </option>
+                ),
+              )}
+            </select>
+          </div>
         </aside>
 
         <main className="panel">
-          <div className="panel-head"><div><h3>Composição do dia</h3><p>À esquerda ficam os itens disponíveis. À direita, o dia em construção.</p></div></div>
+          <div className="panel-head">
+            <div>
+              <h3>Composição do dia</h3>
+              <p>
+                À esquerda ficam os itens disponíveis. À direita, o dia em
+                construção.
+              </p>
+            </div>
+          </div>
           <div className="split">
             <section className="queue-section">
               {filteredItems.slice(0, 20).map((item) => {
-                const alreadyInDay = item.composicoes.some((comp) => comp.dayId === currentDay?.id);
+                const alreadyInDay = item.composicoes.some(
+                  (comp) => comp.dayId === currentDay?.id,
+                );
                 return (
                   <article className="queue-card" key={item.id}>
-                    <div className="queue-top"><div><div className="meta"><span className="pill">#{item.id}</span><span className="pill">{item.categoria || "Sem categoria"}</span><span className="pill">{item.tipoOracao}</span><span className="pill">{item.idioma}</span></div><h4 className="queue-title">{item.textoOriginal}</h4><div className="queue-sub">Recebido em {new Date(item.criadoEm).toLocaleDateString("pt-BR")}</div></div><span className="pill pill-status">{itemStatusOptions.find((o) => o.value === item.status)?.label || item.status}</span></div>
-                    <div className="flex">
-                      <div className="field"><label>Status</label><select value={item.status} onChange={(e) => patchItem(item.id, { status: e.target.value })}>{itemStatusOptions.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}</select></div>
-                      <div className="field"><label>Texto original</label><textarea value={itemDrafts[item.id]?.textoOriginal || ""} onChange={(e) => setItemDrafts((prev) => ({ ...prev, [item.id]: { textoOriginal: e.target.value, referenciaBiblica: prev[item.id]?.referenciaBiblica || "" } }))} /></div>
-                      <div className="field"><label>Referência bíblica</label><input value={itemDrafts[item.id]?.referenciaBiblica || ""} onChange={(e) => setItemDrafts((prev) => ({ ...prev, [item.id]: { textoOriginal: prev[item.id]?.textoOriginal || "", referenciaBiblica: e.target.value } }))} /></div>
+                    <div className="queue-top">
+                      <div>
+                        <div className="meta">
+                          <span className="pill">#{item.id}</span>
+                          <span className="pill">
+                            {item.categoria || "Sem categoria"}
+                          </span>
+                          <span className="pill">{item.tipoOracao}</span>
+                          <span className="pill">{item.idioma}</span>
+                        </div>
+                        <h4 className="queue-title">{item.textoOriginal}</h4>
+                        <div className="queue-sub">
+                          Recebido em{" "}
+                          {new Date(item.criadoEm).toLocaleDateString("pt-BR")}
+                        </div>
+                      </div>
+                      <span className="pill pill-status">
+                        {itemStatusOptions.find((o) => o.value === item.status)
+                          ?.label || item.status}
+                      </span>
                     </div>
-                    <div className="actions"><button className="btn" onClick={() => saveItemTextChanges(item)} disabled={!hasItemDraftChanges(item) || savingItemId === item.id}>{savingItemId === item.id ? "Salvando..." : "Salvar alterações do item"}</button><button className="toggle" onClick={() => patchItem(item.id, { status: "APROVADO" })}>Aprovar item</button><button className="toggle" onClick={() => patchItem(item.id, { status: "EM_REVISAO" })}>Marcar revisão</button><button className="btn-outline" onClick={() => addToDay(item.id)} disabled={alreadyInDay}>{alreadyInDay ? `Já está no Dia ${selectedDay}` : `Adicionar ao Dia ${selectedDay}`}</button></div>
+                    <div className="flex">
+                      <div className="field">
+                        <label>Status</label>
+                        <select
+                          value={item.status}
+                          onChange={(e) =>
+                            patchItem(item.id, { status: e.target.value })
+                          }
+                        >
+                          {itemStatusOptions.map((o) => (
+                            <option key={o.value} value={o.value}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>Texto original</label>
+                        <textarea
+                          value={itemDrafts[item.id]?.textoOriginal || ""}
+                          onChange={(e) =>
+                            setItemDrafts((prev) => ({
+                              ...prev,
+                              [item.id]: {
+                                textoOriginal: e.target.value,
+                                referenciaBiblica:
+                                  prev[item.id]?.referenciaBiblica || "",
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="field">
+                        <label>Referência bíblica</label>
+                        <input
+                          value={itemDrafts[item.id]?.referenciaBiblica || ""}
+                          onChange={(e) =>
+                            setItemDrafts((prev) => ({
+                              ...prev,
+                              [item.id]: {
+                                textoOriginal:
+                                  prev[item.id]?.textoOriginal || "",
+                                referenciaBiblica: e.target.value,
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+                    <div className="actions">
+                      <button
+                        className="btn"
+                        onClick={() => saveItemTextChanges(item)}
+                        disabled={
+                          !hasItemDraftChanges(item) || savingItemId === item.id
+                        }
+                      >
+                        {savingItemId === item.id
+                          ? "Salvando..."
+                          : "Salvar alterações do item"}
+                      </button>
+                      <button
+                        className="toggle"
+                        onClick={() =>
+                          patchItem(item.id, { status: "APROVADO" })
+                        }
+                      >
+                        Aprovar item
+                      </button>
+                      <button
+                        className="toggle"
+                        onClick={() =>
+                          patchItem(item.id, { status: "EM_REVISAO" })
+                        }
+                      >
+                        Marcar revisão
+                      </button>
+                      <button
+                        className="btn-outline"
+                        onClick={() => addToDay(item.id)}
+                        disabled={alreadyInDay}
+                      >
+                        {alreadyInDay
+                          ? `Já está no Dia ${selectedDay}`
+                          : `Adicionar ao Dia ${selectedDay}`}
+                      </button>
+                    </div>
                   </article>
                 );
               })}
@@ -355,10 +616,89 @@ export function OrganizerDashboard({
 
             <section className="compose-panel">
               <div className="compose-card">
-                <div className="compose-head"><div><h4>Dia {selectedDay} · pauta do dia</h4><p>Cada dia o ideal é trabalhar com até 5 itens.</p></div><span className="day-status">{diaStatusOptions.find((o) => o.value === currentDay?.status)?.label || currentDay?.status}</span></div>
-                <div className="field"><label>Status do dia</label><select value={currentDay?.status || "RASCUNHO"} onChange={(e) => { if (e.target.value === "CONCLUIDO" && !canConcludeDay) { setFeedback("Adicione ao menos um item para concluir este dia."); return; } saveDay({ status: e.target.value }); }}>{diaStatusOptions.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}</select></div>
-                <div className="items">{(currentDay?.itens || []).sort((a, b) => a.ordem - b.ordem).map((entry) => (<div className="item" key={entry.id}><div className="order">{entry.ordem}</div><div><strong>{entry.item.textoOriginal}</strong><span>{entry.item.referenciaBiblica}</span><div className="item-tags"><span className="pill">{entry.item.categoria || "Sem categoria"}</span><span className="pill">{entry.item.tipoOracao}</span></div></div><div className="item-action"><button onClick={() => updateDayItem(entry.id, "UP")}>Subir</button><button onClick={() => updateDayItem(entry.id, "DOWN")}>Descer</button><button onClick={() => updateDayItem(entry.id, "REMOVE")}>Remover</button></div></div>))}</div>
-                <div className="actions" style={{ marginTop: 16 }}><button className="btn-outline" onClick={() => saveDay({ status: "EM_MONTAGEM" })}>Marcar em montagem</button><button className="btn-outline" onClick={() => saveDay({ status: "CONCLUIDO" })} disabled={!canConcludeDay}>Concluir este dia</button></div>
+                <div className="compose-head">
+                  <div>
+                    <h4>Dia {selectedDay} · pauta do dia</h4>
+                    <p>Cada dia o ideal é trabalhar com até 5 itens.</p>
+                  </div>
+                  <span className="day-status">
+                    {diaStatusOptions.find(
+                      (o) => o.value === currentDay?.status,
+                    )?.label || currentDay?.status}
+                  </span>
+                </div>
+                <div className="field">
+                  <label>Status do dia</label>
+                  <select
+                    value={currentDay?.status || "RASCUNHO"}
+                    onChange={(e) => {
+                      if (e.target.value === "CONCLUIDO" && !canConcludeDay) {
+                        setFeedback(
+                          "Adicione ao menos um item para concluir este dia.",
+                        );
+                        return;
+                      }
+                      saveDay({ status: e.target.value });
+                    }}
+                  >
+                    {diaStatusOptions.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="items">
+                  {(currentDay?.itens || [])
+                    .sort((a, b) => a.ordem - b.ordem)
+                    .map((entry) => (
+                      <div className="item" key={entry.id}>
+                        <div className="order">{entry.ordem}</div>
+                        <div>
+                          <strong>{entry.item.textoOriginal}</strong>
+                          <span>{entry.item.referenciaBiblica}</span>
+                          <div className="item-tags">
+                            <span className="pill">
+                              {entry.item.categoria || "Sem categoria"}
+                            </span>
+                            <span className="pill">
+                              {entry.item.tipoOracao}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="item-action">
+                          <button onClick={() => updateDayItem(entry.id, "UP")}>
+                            Subir
+                          </button>
+                          <button
+                            onClick={() => updateDayItem(entry.id, "DOWN")}
+                          >
+                            Descer
+                          </button>
+                          <button
+                            onClick={() => updateDayItem(entry.id, "REMOVE")}
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+                <div className="actions" style={{ marginTop: 16 }}>
+                  <button
+                    className="btn-outline"
+                    onClick={() => saveDay({ status: "EM_MONTAGEM" })}
+                  >
+                    Marcar em montagem
+                  </button>
+                  <button
+                    className="btn-outline"
+                    onClick={() => saveDay({ status: "CONCLUIDO" })}
+                    disabled={!canConcludeDay}
+                  >
+                    Concluir este dia
+                  </button>
+                </div>
               </div>
             </section>
           </div>
@@ -366,10 +706,55 @@ export function OrganizerDashboard({
       </section>
 
       <section className="compose-card" style={{ marginTop: 20 }}>
-        <div className="compose-head"><div><h4>Exportação</h4><p>Exporte o dia atual, todos os dias ou um intervalo específico.</p></div></div>
-        <div className="actions" style={{ marginTop: 12 }}><a className="btn" href={exportDayHref}>Exportar dia selecionado</a><a className="btn-outline" href={exportAllHref}>Exportar todos os dias</a></div>
-        <div className="content-grid" style={{ marginTop: 12 }}><div className="field"><label>Dia inicial</label><select value={exportStartDay} onChange={(e) => setExportStartDay(Number(e.target.value))}>{availableDayNumbers.map((day) => (<option key={`start-${day}`} value={day}>Dia {day}</option>))}</select></div><div className="field"><label>Dia final</label><select value={exportEndDay} onChange={(e) => setExportEndDay(Number(e.target.value))}>{availableDayNumbers.map((day) => (<option key={`end-${day}`} value={day}>Dia {day}</option>))}</select></div></div>
-        <div className="actions"><a className="btn" href={exportRangeHref}>Exportar intervalo</a></div>
+        <div className="compose-head">
+          <div>
+            <h4>Exportação</h4>
+            <p>
+              Exporte o dia atual, todos os dias ou um intervalo específico.
+            </p>
+          </div>
+        </div>
+        <div className="actions" style={{ marginTop: 12 }}>
+          <a className="btn" href={exportDayHref}>
+            Exportar dia selecionado
+          </a>
+          <a className="btn-outline" href={exportAllHref}>
+            Exportar todos os dias
+          </a>
+        </div>
+        <div className="content-grid" style={{ marginTop: 12 }}>
+          <div className="field">
+            <label>Dia inicial</label>
+            <select
+              value={exportStartDay}
+              onChange={(e) => setExportStartDay(Number(e.target.value))}
+            >
+              {availableDayNumbers.map((day) => (
+                <option key={`start-${day}`} value={day}>
+                  Dia {day}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label>Dia final</label>
+            <select
+              value={exportEndDay}
+              onChange={(e) => setExportEndDay(Number(e.target.value))}
+            >
+              {availableDayNumbers.map((day) => (
+                <option key={`end-${day}`} value={day}>
+                  Dia {day}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="actions">
+          <a className="btn" href={exportRangeHref}>
+            Exportar intervalo
+          </a>
+        </div>
       </section>
     </>
   );

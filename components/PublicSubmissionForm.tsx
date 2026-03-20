@@ -36,7 +36,10 @@ type PublicSubmissionFormProps = {
 export function PublicSubmissionForm({
   forcedLocality,
 }: PublicSubmissionFormProps) {
-  const [form, setForm] = useState<FormState>(initialState);
+  const [form, setForm] = useState<FormState>(() => ({
+    ...initialState,
+    locality: forcedLocality || initialState.locality,
+  }));
   const [localityTouched, setLocalityTouched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -83,7 +86,11 @@ export function PublicSubmissionForm({
         setError(data.error || "Não foi possível enviar o item.");
         return;
       }
-      setForm(initialState);
+      setForm((prev) => ({
+        ...initialState,
+        // Preserve the active locality so consecutive submissions stay scoped.
+        locality: forcedLocality || prev.locality,
+      }));
       setMessage("Item enviado com sucesso.");
     } catch {
       setError("Erro ao enviar o item.");
